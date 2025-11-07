@@ -14,3 +14,9 @@ class DeleteUserCommand(BaseModel):
 class AuthenticateUserCommand(BaseModel):
     username: str
     password: str
+
+
+class BulkUploadUsersCommand(BaseModel):
+    """Command for bulk uploading users from a file"""
+    users: list[dict]
+    current_user_id: int  # ID of the user performing the import

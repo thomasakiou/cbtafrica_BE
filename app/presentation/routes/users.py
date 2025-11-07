@@ -14,12 +14,23 @@ Follows Domain-Driven Design (DDD) pattern with:
 - Models represent database entities
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
+import pandas as pd
+from io import BytesIO
+from typing import List
+
 from app.infrastructure.database.connection import get_db
 from app.application.handlers.user_handlers import UserHandler
-from app.application.commands.user_commands import CreateUserCommand, UpdateUserCommand, DeleteUserCommand, AuthenticateUserCommand
-from app.domain.users.schemas import UserCreate, UserUpdate, UserResponse, UserLogin, Token
+from app.application.commands.user_commands import (
+    CreateUserCommand, UpdateUserCommand, 
+    DeleteUserCommand, AuthenticateUserCommand,
+    BulkUploadUsersCommand
+)
+from app.domain.users.schemas import (
+    UserCreate, UserUpdate, UserResponse, 
+    UserLogin, Token, BulkUserResponse
+)
 from app.infrastructure.auth import get_current_user
 from app.infrastructure.database.models import User
 
@@ -53,20 +64,46 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
         print(f"Error type: {type(e)}")
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.post("/login", response_model=Token)
+# @router.post("/login", response_model=Token)
+# def login_user(user_login: UserLogin, db: Session = Depends(get_db)):
+#     """
+#     Authenticate user and return JWT token (PUBLIC ENDPOINT)
+    
+#     Validates username/password and returns a JWT token for accessing
+#     protected endpoints. Token expires after configured time period.
+    
+#     Args:
+#         user_login: Login credentials (username, password)
+#         db: Database session dependency
+        
+#     Returns:
+#         Token: JWT access token and token type
+        
+#     Raises:
+#         HTTPException 401: If credentials are invalid
+#     """
+#     handler = UserHandler(db)
+#     try:
+#         command = AuthenticateUserCommand(username=user_login.username, password=user_login.password)
+#         return handler.authenticate_user(command)
+#     except Exception as e:
+#         raise HTTPException(status_code=401, detail="Invalid credentials")
+
+
+@router.post("/login", response_model=dict)  # Changed response_model
 def login_user(user_login: UserLogin, db: Session = Depends(get_db)):
     """
-    Authenticate user and return JWT token (PUBLIC ENDPOINT)
+    Authenticate user and return JWT token with user data (PUBLIC ENDPOINT)
     
-    Validates username/password and returns a JWT token for accessing
-    protected endpoints. Token expires after configured time period.
+    Validates username/password and returns a JWT token along with user data
+    for accessing protected endpoints. Token expires after configured time period.
     
     Args:
         user_login: Login credentials (username, password)
         db: Database session dependency
         
     Returns:
-        Token: JWT access token and token type
+        dict: Contains access token, token type, and user data
         
     Raises:
         HTTPException 401: If credentials are invalid
@@ -151,7 +188,7 @@ def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get
         raise HTTPException(status_code=404, detail="User not found")
 
 @router.delete("/{user_id}")
-def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """
     Delete user account (AUTHENTICATED ENDPOINT)
     
@@ -170,10 +207,87 @@ def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User 
     Raises:
         HTTPException 404: If user not found
     """
-    handler = UserHandler(db)
     try:
+        handler = UserHandler(db)
         command = DeleteUserCommand(user_id=user_id)
         handler.delete_user(command)
         return {"message": "User deleted successfully"}
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.post("/bulk-upload", response_model=BulkUserResponse, status_code=status.HTTP_201_CREATED)
+async def bulk_upload_users(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Bulk upload users from CSV or Excel file (AUTHENTICATED ENDPOINT)
+    
+    Upload a CSV or Excel file containing user data to create multiple users at once.
+    Required fields: username, password, full_name
+    Optional fields: email
+    
+    File format (CSV/Excel):
+    username,email,password,full_name
+    user1,user1@example.com,password123,User One
+    user2,,password456,User Two
+    
+    Args:
+        file: CSV or Excel file containing user data
+        db: Database session dependency
+        current_user: Currently authenticated user (from JWT token)
+        
+    Returns:
+        BulkUserResponse: Summary of the import operation
+        
+    Raises:
+        HTTPException 400: If file is invalid or empty
+        HTTPException 422: If file format is not supported
+    """
+    if not file.filename.lower().endswith(('.csv', '.xlsx', '.xls')):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="File must be a CSV or Excel file"
+        )
+    
+    try:
+        # Read file content
+        content = await file.read()
+        
+        # Parse file based on extension
+        if file.filename.lower().endswith('.csv'):
+            df = pd.read_csv(BytesIO(content))
+        else:  # Excel file
+            df = pd.read_excel(BytesIO(content))
+        
+        # Convert to list of dicts
+        users_data = df.replace({pd.NA: None}).to_dict('records')
+        
+        if not users_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="File is empty or could not be processed"
+            )
+        
+        # Process the upload
+        handler = UserHandler(db)
+        command = BulkUploadUsersCommand(
+            users=users_data,
+            current_user_id=current_user.id
+        )
+        
+        result = handler.bulk_upload_users(command)
+        return result
+        
+    except pd.errors.EmptyDataError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File is empty or could not be processed"
+        )
     except Exception as e:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Error processing file: {str(e)}"
+        )

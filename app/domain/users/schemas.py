@@ -1,6 +1,7 @@
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, field_validator, Field
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Dict, Any, Union
+from enum import Enum
 
 class UserBase(BaseModel):
     username: str
@@ -56,3 +57,30 @@ class Token(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class BulkUserItem(BaseModel):
+    """Schema for individual user data in bulk upload"""
+    username: str
+    email: Optional[EmailStr] = None
+    password: str
+    full_name: str
+    
+    # Convert fields to string if they're numbers
+    @field_validator('username', 'password', mode='before')
+    @classmethod
+    def convert_to_string(cls, v, info):
+        if v is not None:
+            return str(v)
+        return v
+
+
+class BulkUserResponse(BaseModel):
+    """Response schema for bulk user upload"""
+    total_processed: int
+    successful: int
+    failed: int
+    details: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description="List of operation results with details about each user import attempt"
+    )
