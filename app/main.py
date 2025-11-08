@@ -7,11 +7,7 @@ import os
 from pathlib import Path
 
 from app.config import settings
-from app.presentation.routes import (
-    users, attempts, categories, 
-    exam_types, questions, results, 
-    subjects, tests
-)
+from app.presentation.routes import users, tests, questions, attempts, results, exam_types, subjects
 
 def create_application() -> FastAPI:
     # Initialize FastAPI app with root path for reverse proxy
@@ -39,7 +35,7 @@ def create_application() -> FastAPI:
     # Include API routes
     app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["users"])
     app.include_router(attempts.router, prefix=f"{settings.API_V1_STR}/attempts", tags=["attempts"])
-    app.include_router(categories.router, prefix=f"{settings.API_V1_STR}/categories", tags=["categories"])
+    # app.include_router(categories.router, prefix=f"{settings.API_V1_STR}/categories", tags=["categories"])
     app.include_router(exam_types.router, prefix=f"{settings.API_V1_STR}/exam-types", tags=["exam-types"])
     app.include_router(questions.router, prefix=f"{settings.API_V1_STR}/questions", tags=["questions"])
     app.include_router(results.router, prefix=f"{settings.API_V1_STR}/results", tags=["results"])

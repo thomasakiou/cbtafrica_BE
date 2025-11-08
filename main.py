@@ -5,8 +5,18 @@ from app.infrastructure.database.connection import engine, SessionLocal
 from app.infrastructure.database.models import Base
 from app.infrastructure.admin_setup import create_admin_user
 from app.infrastructure.database.models import ExamType, Subject
+from fastapi import FastAPI
+from app.config import settings
 
-app = FastAPI(title="CBT Application Backend API", version="1.0.0")
+# app = FastAPI(title="CBT Application Backend API", version="1.0.0")
+app = FastAPI(
+    title=settings.APP_NAME,
+    debug=settings.DEBUG,
+    root_path=settings.ROOT_PATH,
+    docs_url=f"{settings.API_V1_STR}/docs",
+    redoc_url=f"{settings.API_V1_STR}/redoc",
+    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -15,6 +25,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# app = FastAPI(
+#     title=settings.APP_NAME,
+#     root_path=settings.ROOT_PATH
+# )
 
 Base.metadata.create_all(bind=engine)
 
@@ -62,6 +77,26 @@ app.include_router(subjects.router, prefix="/api/v1/subjects", tags=["subjects"]
 def read_root():
     return {"message": "CBT Application Backend API"}
 
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run(app, host="0.0.0.0", port=8002)
+
+    # Health check endpoint
+# @app.get("/health")
+# async def health_check():
+#     return {"status": "ok"}
+
+# return app
+
+# app = create_application()
+
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(
+        "app.main:app",
+        host=settings.HOST,
+        port=settings.PORT,
+        workers=settings.WORKERS,
+        reload=settings.DEBUG,
+        proxy_headers=True,
+        forwarded_allow_ips="*"
+    )

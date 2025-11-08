@@ -2,9 +2,11 @@ from pydantic_settings import BaseSettings
 from functools import lru_cache
 from typing import Optional
 
+
 class Settings(BaseSettings):
+
     # Application
-    APP_NAME: str = "CBT Backend"
+    APP_NAME: str = "CBT Africa Application API"
     DEBUG: bool = False
     ENVIRONMENT: str = "development"
     
@@ -15,17 +17,20 @@ class Settings(BaseSettings):
     
     # API
     API_V1_STR: str = "/api/v1"
-    ROOT_PATH: str = ""  # This will be set to "/cbt" when behind Nginx
+    ROOT_PATH: str = "/cbt"  # This will be set to "/cbt" when behind Nginx
     
     # CORS
-    BACKEND_CORS_ORIGINS: list[str] = ["*"]
-    
+    BACKEND_CORS_ORIGINS: list[str] = ["http://localhost:3000",
+                                       "https://cbtafrica.netlify.app/",
+                                       "http://127.0.0.1:5500/"]
+
     # Database
-    DATABASE_URL: str = "postgresql://postgres:postgres@localhost/cbt_db"
+    DATABASE_URL: str = "postgresql://thomas:ebimobowei81@localhost:5432/cbt_db"
     
     # Security
-    SECRET_KEY: str = "your-secret-key-here"
+    SECRET_KEY: str = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
+    ALGORITHM: str = "HS256"
     
     class Config:
         case_sensitive = True
