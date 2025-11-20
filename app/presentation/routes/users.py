@@ -33,9 +33,27 @@ from app.domain.users.schemas import (
 )
 from app.infrastructure.auth import get_current_user
 from app.infrastructure.database.models import User
+from fastapi.security import HTTPAuthorizationCredentials
+from app.infrastructure.auth import security
+from jose import jwt, JWTError
+from datetime import datetime, timedelta
+from app.config import settings
 
 # FastAPI router for grouping user-related endpoints
 router = APIRouter()
+
+# @router.get("/me", response_model=UserResponse)
+# def get_current_user_profile(
+#     db: Session = Depends(get_db),
+#     current_user: User = Depends(get_current_user)
+# ):
+#     """
+#     Get the currently authenticated user's profile.
+#     This route is used by the frontend to validate login sessions
+#     and determine user roles (admin vs student).
+#     """
+#     return current_user
+
 
 @router.post("/register", response_model=UserResponse)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
@@ -114,6 +132,7 @@ def login_user(user_login: UserLogin, db: Session = Depends(get_db)):
         return handler.authenticate_user(command)
     except Exception as e:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+
 
 @router.get("/", response_model=list[UserResponse])
 def get_all_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
@@ -291,3 +310,83 @@ async def bulk_upload_users(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Error processing file: {str(e)}"
         )
+
+
+@router.post("/refresh-token", response_model=dict)
+def refresh_token(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+):
+    """
+    Refresh an existing JWT token. Accepts the current token in the
+    Authorization header and returns a new access token with extended
+    expiration. Implements a short grace period for recently expired tokens.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    token = credentials.credentials
+
+    try:
+        # Try to decode and verify expiration normally
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+            options={"verify_exp": True}
+        )
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+
+    except JWTError as e:
+        # Handle expired token with a short grace period
+        if "expired" in str(e).lower():
+            try:
+                payload = jwt.decode(
+                    token,
+                    settings.SECRET_KEY,
+                    algorithms=[settings.ALGORITHM],
+                    options={"verify_exp": False}
+                )
+
+                exp = payload.get("exp")
+                if not exp:
+                    raise credentials_exception
+
+                expired_at = datetime.utcfromtimestamp(exp)
+                # Allow refresh within 10 minutes after expiry
+                if datetime.utcnow() - expired_at > timedelta(minutes=10):
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Token expired beyond grace period, please login again",
+                    )
+
+                username = payload.get("sub")
+                if username is None:
+                    raise credentials_exception
+
+            except JWTError:
+                raise credentials_exception
+        else:
+            # Malformed or invalid signature
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+    # Verify user still exists and is active
+    user = db.query(User).filter(User.username == username).first()
+    if not user or not user.is_active:
+        raise credentials_exception
+
+    # Create new token
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.utcnow() + access_token_expires
+    new_token = jwt.encode({"sub": username, "exp": expire, "iat": datetime.utcnow()}, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+    return {"access_token": new_token, "token_type": "bearer"}

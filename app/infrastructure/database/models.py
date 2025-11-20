@@ -174,6 +174,9 @@ class Question(Base):
     # The actual question text/content
     question_text = Column(Text)
     
+    # Optional question image URL/path (for questions presented as images)
+    question_image = Column(String, nullable=True)
+    
     # Type of question: 'multiple_choice', 'true_false', 'essay'
     question_type = Column(String)
     
@@ -185,7 +188,10 @@ class Question(Base):
     correct_answer = Column(String)
     
     # Optional explanation for the correct answer
-    explanation = Column(Text, default="No Explanation")
+    explanation = Column(Text, default=" ")
+    
+    # Optional explanation image URL/path (for visual explanations)
+    explanation_image = Column(String, nullable=True)
     
     # Question creation timestamp
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -274,3 +280,35 @@ class Answer(Base):
     # Relationships
     attempt = relationship("Attempt", back_populates="answers")
     question = relationship("Question", back_populates="answers")
+
+class News(Base):
+    """
+    News Model - Stores news feed items for display on frontend
+    
+    This model stores news items that will be displayed in the frontend
+    news feed. Each news item includes a title, description, URL to the
+    full article, and publication date. This allows the application to
+    display curated news content relevant to students and educators.
+    """
+    __tablename__ = "news"
+    
+    # Primary key - unique identifier for each news item
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # The news heading/title
+    title = Column(String(500), nullable=False)
+    
+    # Short description of the news
+    content = Column(Text, nullable=False)
+    
+    # URL to the actual news page on the internet
+    url = Column(String, nullable=False)
+    
+    # Date the news was published
+    date = Column(DateTime, nullable=False)
+    
+    # News item creation timestamp (when added to system)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # News item last update timestamp
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

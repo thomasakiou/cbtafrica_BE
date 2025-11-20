@@ -83,7 +83,13 @@ cp .env.example .env
 CREATE DATABASE cbt_db;
 ```
 
-4. Run the application:
+4. Run database migrations:
+```bash
+source venv/bin/activate
+alembic upgrade head
+```
+
+5. Run the application:
 ```bash
 python main.py
 ```
@@ -107,9 +113,31 @@ The application uses the following main entities:
 - **True/False**: Boolean questions
 - **Essay**: Open-ended text responses
 
+## Database Migrations
+
+This project uses **Alembic** for database migrations. See [docs/ALEMBIC_GUIDE.md](docs/ALEMBIC_GUIDE.md) for detailed instructions.
+
+**Quick commands:**
+```bash
+# Apply all pending migrations
+alembic upgrade head
+
+# Create a new migration after model changes
+alembic revision --autogenerate -m "description"
+
+# Check current migration status
+alembic current
+```
+
 ## Security Features
 
 - JWT-based authentication
 - Password hashing with bcrypt
 - Role-based access control
 - Input validation and sanitization
+
+## Documentation
+
+- [Alembic Migration Guide](docs/ALEMBIC_GUIDE.md) - Database migration instructions
+- [Explanation Image Upload](docs/EXPLANATION_IMAGE_UPLOAD.md) - Image upload feature documentation
+- [Testing Guide](docs/TESTING_GUIDE.md) - Testing procedures

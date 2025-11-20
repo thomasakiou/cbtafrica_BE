@@ -4,10 +4,12 @@ from typing import Optional, List, Dict, Any
 
 class QuestionBase(BaseModel):
     question_text: str
+    question_image: Optional[str] = None
     question_type: str
     options: Optional[Dict[str, Any]] = None
     correct_answer: str
     explanation: Optional[str] = None
+    explanation_image: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -21,10 +23,12 @@ class QuestionCreate(QuestionBase):
 
 class QuestionUpdate(BaseModel):
     question_text: Optional[str] = None
+    question_image: Optional[str] = None
     question_type: Optional[str] = None
     options: Optional[Dict[str, Any]] = None
     correct_answer: Optional[str] = None
     explanation: Optional[str] = None
+    explanation_image: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -41,6 +45,7 @@ class QuestionResponse(QuestionBase):
 class QuestionForTest(BaseModel):
     id: int
     question_text: str
+    question_image: Optional[str] = None
     question_type: str
     options: Optional[Dict[str, Any]] = None
     

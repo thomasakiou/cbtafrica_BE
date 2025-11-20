@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     ALGORITHM: str = "HS256"
     
+    # File Upload Settings
+    UPLOAD_DIR: str = "uploads/explanation_images"
+    QUESTION_IMAGE_DIR: str = "uploads/question_images"
+    MAX_FILE_SIZE: int = 5 * 1024 * 1024  # 5MB in bytes
+    ALLOWED_IMAGE_EXTENSIONS: list[str] = [".jpg", ".jpeg", ".png", ".gif", ".webp"]
+    
     class Config:
         case_sensitive = True
         env_file = ".env"

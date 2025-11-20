@@ -2,3 +2,10 @@ venv
 .env
 __pycache__/
 *.pyc
+
+# Uploaded files (keep directory structure but not the files)
+uploads/*
+!uploads/.gitkeep
+!uploads/explanation_images/
+uploads/explanation_images/*
+!uploads/explanation_images/.gitkeep

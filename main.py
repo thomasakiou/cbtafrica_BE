@@ -1,12 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.presentation.routes import users, tests, questions, attempts, results, exam_types, subjects
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from app.presentation.routes import users, tests, questions, attempts, results, exam_types, subjects, news
 from app.infrastructure.database.connection import engine, SessionLocal
 from app.infrastructure.database.models import Base
 from app.infrastructure.admin_setup import create_admin_user
 from app.infrastructure.database.models import ExamType, Subject
 from fastapi import FastAPI
 from app.config import settings
+from pathlib import Path
+import os
 
 # app = FastAPI(title="CBT Application Backend API", version="1.0.0")
 app = FastAPI(
@@ -20,7 +24,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://cbtafrica.netlify.app", "https://mycbtapp.netlify.app", "https://mycbt.com.ng"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,7 +35,14 @@ app.add_middleware(
 #     root_path=settings.ROOT_PATH
 # )
 
-Base.metadata.create_all(bind=engine)
+# Database migrations are now handled by Alembic
+# To apply migrations, run: alembic upgrade head
+# To create new migrations, run: alembic revision --autogenerate -m "description"
+Base.metadata.create_all(bind=engine)  # Temporarily enabled to add new column
+
+# Create upload directories if they don't exist
+upload_dir = Path(settings.UPLOAD_DIR)
+upload_dir.mkdir(parents=True, exist_ok=True)
 
 # Create admin user and default data on startup
 db = SessionLocal()
@@ -65,6 +76,25 @@ try:
 finally:
     db.close()
 
+# Serve uploaded images via custom routes
+@app.get("/uploads/explanation_images/{filename}")
+async def serve_explanation_image(filename: str):
+    """Serve explanation images"""
+    file_path = Path("uploads/explanation_images") / filename
+    if not file_path.exists():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(file_path)
+
+@app.get("/uploads/question_images/{filename}")
+async def serve_question_image(filename: str):
+    """Serve question images"""
+    file_path = Path("uploads/question_images") / filename
+    if not file_path.exists():
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(file_path)
+
 app.include_router(users.router, prefix="/api/v1/users", tags=["users"])
 app.include_router(tests.router, prefix="/api/v1/tests", tags=["tests"])
 app.include_router(questions.router, prefix="/api/v1/questions", tags=["questions"])
@@ -72,6 +102,7 @@ app.include_router(attempts.router, prefix="/api/v1/attempts", tags=["attempts"]
 app.include_router(results.router, prefix="/api/v1/results", tags=["results"])
 app.include_router(exam_types.router, prefix="/api/v1/exam-types", tags=["exam-types"])
 app.include_router(subjects.router, prefix="/api/v1/subjects", tags=["subjects"])
+app.include_router(news.router, prefix="/api/v1/news", tags=["news"])
 
 @app.get("/")
 def read_root():
@@ -92,7 +123,7 @@ def read_root():
 
 if __name__ == "__main__":
     uvicorn.run(
-        "app.main:app",
+        "main:app",
         host=settings.HOST,
         port=settings.PORT,
         workers=settings.WORKERS,
