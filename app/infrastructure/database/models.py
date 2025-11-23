@@ -312,3 +312,60 @@ class News(Base):
     
     # News item last update timestamp
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# # Forum models
+# import uuid
+# from sqlalchemy.dialects.postgresql import UUID
+
+class ForumPost(Base):
+    """
+    ForumPost Model - Represents a forum post for a subject
+    """
+    __tablename__ = "forum_posts"
+
+    id = Column(Integer, primary_key=True, autoincrement=True, unique=True, index=True)
+    title = Column(String(255), nullable=False)
+    content = Column(Text, nullable=False)
+    subject = Column(String(100), nullable=False, index=True)
+    image_url = Column(String, nullable=True)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    author = relationship("User", backref="forum_posts")
+    likes = relationship("ForumLike", back_populates="post", cascade="all, delete-orphan")
+
+    # replyCount is calculated dynamically (not a column)
+
+class ForumLike(Base):
+    """
+    ForumLike Model - Represents a like on a forum post by a user
+    """
+    __tablename__ = "forum_likes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("forum_posts.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    post = relationship("ForumPost", back_populates="likes")
+    user = relationship("User")
+
+
+# ForumReply model for replies to forum posts
+class ForumReply(Base):
+    """
+    ForumReply Model - Represents a reply to a forum post
+    """
+    __tablename__ = "forum_replies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    post_id = Column(Integer, ForeignKey("forum_posts.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    post = relationship("ForumPost", backref="replies")
+    user = relationship("User")
