@@ -193,6 +193,9 @@ class Question(Base):
     # Optional explanation image URL/path (for visual explanations)
     explanation_image = Column(String, nullable=True)
     
+    # Year the question is relevant for (e.g., 2023, 2024)
+    year = Column(Integer, nullable=True, index=True)
+    
     # Question creation timestamp
     created_at = Column(DateTime, default=datetime.utcnow)
     
@@ -219,8 +222,17 @@ class Attempt(Base):
     # Foreign key - which user is taking the test
     user_id = Column(Integer, ForeignKey("users.id"))
     
-    # Foreign key - which test is being attempted
-    test_id = Column(Integer, ForeignKey("tests.id"))
+    # Foreign key - which test is being attempted (nullable for practice tests)
+    test_id = Column(Integer, ForeignKey("tests.id"), nullable=True)
+    
+    # Foreign key - subject for practice tests
+    subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=True)
+    
+    # Foreign key - exam type for practice tests
+    exam_type_id = Column(Integer, ForeignKey("exam_types.id"), nullable=True)
+    
+    # Whether this is a practice attempt
+    is_practice = Column(Boolean, default=False)
     
     # When the user started the test
     start_time = Column(DateTime, default=datetime.utcnow)
@@ -240,9 +252,14 @@ class Attempt(Base):
     # Whether the user passed (percentage >= passing percentage)
     passed = Column(Boolean)
     
+    # Time taken to complete the test in seconds
+    time_taken = Column(Integer)
+    
     # Relationships
     user = relationship("User", back_populates="attempts")
     test = relationship("Test", back_populates="attempts")
+    subject = relationship("Subject")
+    exam_type = relationship("ExamType")
     answers = relationship("Answer", back_populates="attempt")
 
 class Answer(Base):
@@ -369,3 +386,15 @@ class ForumReply(Base):
 
     post = relationship("ForumPost", backref="replies")
     user = relationship("User")
+
+class PublicQuestion(Base):
+    """
+    PublicQuestion Model - Represents questions available to the public
+    """
+    __tablename__ = "public_questions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    subject = Column(String, index=True)
+    question = Column(Text, nullable=False)
+    solution = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)

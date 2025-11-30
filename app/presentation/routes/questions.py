@@ -157,22 +157,26 @@ def create_question(question: QuestionCreate, db: Session = Depends(get_db), adm
 def get_all_questions(
     exam_type_id: Optional[int] = Query(None),
     subject_id: Optional[int] = Query(None),
+    year: Optional[int] = Query(None, description="Filter questions by year"),
     skip: int = Query(0),
-    limit: int = Query(100),
+    limit: int = Query(10000),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     command = GetQuestionsCommand(
         exam_type_id=exam_type_id,
         subject_id=subject_id,
+        year=year,
         skip=skip,
         limit=limit
     )
     questions = db.query(Question)
-    if command.exam_type_id:
+    if command.exam_type_id is not None:
         questions = questions.filter(Question.exam_type_id == command.exam_type_id)
-    if command.subject_id:
+    if command.subject_id is not None:
         questions = questions.filter(Question.subject_id == command.subject_id)
+    if command.year is not None:
+        questions = questions.filter(Question.year == command.year)
     return questions.offset(command.skip).limit(command.limit).all()
 
 # async def get_all_questions(
@@ -196,18 +200,46 @@ def get_all_questions(
 
 
 @router.get("/exam-type/{exam_type_id}/subject/{subject_id}", response_model=List[QuestionResponse])
-def get_questions_by_exam_type_and_subject(exam_type_id: int, subject_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    questions = db.query(Question).filter(Question.exam_type_id == exam_type_id, Question.subject_id == subject_id).all()
+def get_questions_by_exam_type_and_subject(
+    exam_type_id: int, 
+    subject_id: int, 
+    year: Optional[int] = Query(None, description="Filter questions by year"),
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    query = db.query(Question).filter(
+        Question.exam_type_id == exam_type_id, 
+        Question.subject_id == subject_id
+    )
+    if year is not None:
+        query = query.filter(Question.year == year)
+    questions = query.all()
     return [QuestionResponse.model_validate(q) for q in questions]
 
 @router.get("/exam-type/{exam_type_id}", response_model=List[QuestionResponse])
-def get_questions_by_exam_type(exam_type_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    questions = db.query(Question).filter(Question.exam_type_id == exam_type_id).all()
+def get_questions_by_exam_type(
+    exam_type_id: int, 
+    year: Optional[int] = Query(None, description="Filter questions by year"),
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    query = db.query(Question).filter(Question.exam_type_id == exam_type_id)
+    if year is not None:
+        query = query.filter(Question.year == year)
+    questions = query.all()
     return [QuestionResponse.model_validate(q) for q in questions]
 
 @router.get("/subject/{subject_id}", response_model=List[QuestionResponse])
-def get_questions_by_subject(subject_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    questions = db.query(Question).filter(Question.subject_id == subject_id).all()
+def get_questions_by_subject(
+    subject_id: int, 
+    year: Optional[int] = Query(None, description="Filter questions by year"),
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    query = db.query(Question).filter(Question.subject_id == subject_id)
+    if year is not None:
+        query = query.filter(Question.year == year)
+    questions = query.all()
     return [QuestionResponse.model_validate(q) for q in questions]
 
 @router.get("/{question_id}", response_model=QuestionResponse)

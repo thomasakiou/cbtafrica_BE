@@ -74,6 +74,7 @@ class UserHandler:
             "access_token": access_token, 
             "token_type": "bearer",
             "user": {
+                "id": user.id,
                 "username": user.username,
                 "full_name": user.full_name,
                 "email": user.email,

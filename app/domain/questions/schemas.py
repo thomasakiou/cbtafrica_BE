@@ -10,6 +10,7 @@ class QuestionBase(BaseModel):
     correct_answer: str
     explanation: Optional[str] = None
     explanation_image: Optional[str] = None
+    year: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -17,6 +18,7 @@ class QuestionBase(BaseModel):
 class QuestionCreate(QuestionBase):
     exam_type_id: int  # NECO, WAEC, JAMB, NABTEB
     subject_id: int    # Mathematics, English, etc.
+    year: Optional[int] = None  # Year the question is relevant for
 
     class Config:
         from_attributes = True
@@ -29,6 +31,7 @@ class QuestionUpdate(BaseModel):
     correct_answer: Optional[str] = None
     explanation: Optional[str] = None
     explanation_image: Optional[str] = None
+    year: Optional[int] = None
 
     class Config:
         from_attributes = True
@@ -37,6 +40,7 @@ class QuestionResponse(QuestionBase):
     id: int
     exam_type_id: int
     subject_id: int
+    year: Optional[int] = None
     created_at: datetime
     
     class Config:

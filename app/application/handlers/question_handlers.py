@@ -35,10 +35,13 @@ class QuestionHandler:
         return QuestionResponse.model_validate(question)
     
     def get_questions_by_exam_type_and_subject(self, command: GetQuestionsByExamTypeAndSubjectCommand) -> List[QuestionResponse]:
-        questions = self.db.query(Question).filter(
+        query = self.db.query(Question).filter(
             Question.exam_type_id == command.exam_type_id,
             Question.subject_id == command.subject_id
-        ).all()
+        )
+        if command.year is not None:
+            query = query.filter(Question.year == command.year)
+        questions = query.all()
         return [QuestionResponse.model_validate(q) for q in questions]
 
     def get_all_questions(self, command: GetQuestionsCommand):
@@ -47,15 +50,23 @@ class QuestionHandler:
             q = q.filter(Question.exam_type_id == command.exam_type_id)
         if command.subject_id:
             q = q.filter(Question.subject_id == command.subject_id)
+        if command.year is not None:
+            q = q.filter(Question.year == command.year)
         return q.offset(command.skip).limit(command.limit).all()
 
 
     def get_questions_by_exam_type(self, command: GetQuestionsByExamTypeCommand) -> List[QuestionResponse]:
-        questions = self.db.query(Question).filter(Question.exam_type_id == command.exam_type_id).all()
+        query = self.db.query(Question).filter(Question.exam_type_id == command.exam_type_id)
+        if command.year is not None:
+            query = query.filter(Question.year == command.year)
+        questions = query.all()
         return [QuestionResponse.model_validate(q) for q in questions]
     
     def get_questions_by_subject(self, command: GetQuestionsBySubjectCommand) -> List[QuestionResponse]:
-        questions = self.db.query(Question).filter(Question.subject_id == command.subject_id).all()
+        query = self.db.query(Question).filter(Question.subject_id == command.subject_id)
+        if command.year is not None:
+            query = query.filter(Question.year == command.year)
+        questions = query.all()
         return [QuestionResponse.model_validate(q) for q in questions]
     
     def update_question(self, command: UpdateQuestionCommand) -> QuestionResponse:

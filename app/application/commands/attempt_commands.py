@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from app.domain.attempts.schemas import AttemptCreate, AttemptSubmit
+from app.domain.attempts.schemas import AttemptCreate, AttemptSubmit, PracticeAttemptCreate
 
 class StartAttemptCommand(BaseModel):
     user_id: int
@@ -13,3 +13,6 @@ class GetUserAttemptsCommand(BaseModel):
 
 class GetAttemptCommand(BaseModel):
     attempt_id: int
+
+class SavePracticeAttemptCommand(BaseModel):
+    data: PracticeAttemptCreate

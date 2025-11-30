@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.infrastructure.database.connection import get_db
 from app.application.handlers.test_handlers import TestHandler
-from app.application.commands.test_commands import CreateTestCommand, UpdateTestCommand, DeleteTestCommand
+from app.application.commands.test_commands import CreateTestCommand, UpdateTestCommand, DeleteTestCommand, GetTestsCommand, GetTestCommand, GetTestsByExamTypeCommand, GetTestsBySubjectCommand
 from app.domain.tests.schemas import TestCreate, TestUpdate, TestResponse, TestWithQuestions
 from app.infrastructure.auth import get_current_user
 from app.infrastructure.database.models import User
@@ -22,13 +22,15 @@ def create_test(test: TestCreate, created_by: int, db: Session = Depends(get_db)
 @router.get("/", response_model=List[TestResponse])
 def get_tests(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     handler = TestHandler(db)
-    return handler.get_all_tests(skip=skip, limit=limit)
+    command = GetTestsCommand(skip=skip, limit=limit)
+    return handler.get_all_tests(command)
 
 @router.get("/{test_id}", response_model=TestResponse)
 def get_test(test_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     handler = TestHandler(db)
     try:
-        return handler.get_test_by_id(test_id)
+        command = GetTestCommand(test_id=test_id)
+        return handler.get_test_by_id(command)
     except Exception as e:
         raise HTTPException(status_code=404, detail="Test not found")
 
@@ -43,12 +45,14 @@ def get_test_with_questions(test_id: int, db: Session = Depends(get_db), current
 @router.get("/exam-type/{exam_type_id}", response_model=List[TestResponse])
 def get_tests_by_exam_type(exam_type_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     handler = TestHandler(db)
-    return handler.get_tests_by_exam_type(exam_type_id)
+    command = GetTestsByExamTypeCommand(exam_type_id=exam_type_id)
+    return handler.get_tests_by_exam_type(command)
 
 @router.get("/subject/{subject_id}", response_model=List[TestResponse])
 def get_tests_by_subject(subject_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     handler = TestHandler(db)
-    return handler.get_tests_by_subject(subject_id)
+    command = GetTestsBySubjectCommand(subject_id=subject_id)
+    return handler.get_tests_by_subject(command)
 
 @router.put("/{test_id}", response_model=TestResponse)
 def update_test(test_id: int, test_update: TestUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):

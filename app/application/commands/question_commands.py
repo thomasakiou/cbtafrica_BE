@@ -21,15 +21,19 @@ class GetQuestionCommand(BaseModel):
 class GetQuestionsByExamTypeAndSubjectCommand(BaseModel):
     exam_type_id: int
     subject_id: int
+    year: Optional[int] = None
 
 class GetQuestionsByExamTypeCommand(BaseModel):
     exam_type_id: int
+    year: Optional[int] = None
 
 class GetQuestionsBySubjectCommand(BaseModel):
     subject_id: int
+    year: Optional[int] = None
 
 class GetQuestionsCommand(BaseModel):
     exam_type_id: Optional[int] = None
     subject_id: Optional[int] = None
+    year: Optional[int] = None
     skip: int = 0
     limit: int = 100

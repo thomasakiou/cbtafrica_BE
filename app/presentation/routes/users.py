@@ -38,9 +38,12 @@ from app.infrastructure.auth import security
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from app.config import settings
+from app.domain.attempts.schemas import AttemptResponse
+from app.application.handlers.attempt_handlers import AttemptHandler
 
 # FastAPI router for grouping user-related endpoints
 router = APIRouter()
+
 
 # @router.get("/me", response_model=UserResponse)
 # def get_current_user_profile(
@@ -390,3 +393,28 @@ def refresh_token(
     new_token = jwt.encode({"sub": username, "exp": expire, "iat": datetime.utcnow()}, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
     return {"access_token": new_token, "token_type": "bearer"}
+
+from app.domain.attempts.schemas import AttemptResponse
+from app.application.handlers.attempt_handlers import AttemptHandler
+
+@router.get("/{user_id}/attempts", response_model=List[AttemptResponse])
+def get_student_attempts(
+    user_id: int, 
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Fetch all test attempts for a specific student user.
+    
+    Authentication: Required (JWT token)
+    Authorization: Student can only access their own attempts, Admin can access any user's attempts
+    """
+    # Authorization check
+    if current_user.id != user_id and current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to access this user's data"
+        )
+        
+    handler = AttemptHandler(db)
+    return handler.get_student_attempts(user_id)

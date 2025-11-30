@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from app.presentation.routes import users, tests, questions, attempts, results, exam_types, subjects, news, forum
+from app.presentation.routes import users, tests, questions, attempts, results, exam_types, subjects, news, forum, public_questions
 from app.infrastructure.database.connection import engine, SessionLocal
 from app.infrastructure.database.models import Base
 from app.infrastructure.admin_setup import create_admin_user
@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from app.config import settings
 from pathlib import Path
 import os
+import uvicorn
 
 # app = FastAPI(title="CBT Application Backend API", version="1.0.0")
 app = FastAPI(
@@ -30,6 +31,9 @@ app.add_middleware(
                      "https://myexampadi.com.ng",
                      "http://localhost:5500",
                      "http://127.0.0.1:5500",
+                     "http://localhost:3001",
+                     "http://localhost:3000",
+                     "https://myexampady.netlify.app"
                      ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -110,6 +114,7 @@ app.include_router(exam_types.router, prefix="/api/v1/exam-types", tags=["exam-t
 app.include_router(subjects.router, prefix="/api/v1/subjects", tags=["subjects"])
 app.include_router(news.router, prefix="/api/v1/news", tags=["news"])
 app.include_router(forum.router, prefix="/api/v1/forum", tags=["forum"])
+app.include_router(public_questions.router, prefix="/api/v1/public-questions", tags=["public-questions"])
 
 @app.get("/")
 def read_root():
